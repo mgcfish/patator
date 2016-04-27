@@ -639,7 +639,10 @@ class Logger:
 #    return send
 
   def send(self, action, *args):
-    self.pipe.send((self.name, action, args))
+    try:
+	self.pipe.send((self.name, action, args))
+    except IOError:
+	pass
 
   def quit(self):
     self.send('quit')
@@ -4309,6 +4312,57 @@ class IKE_enum:
 
 # }}}
 
+# Ike_group {{{
+if not which('ike-scan'):
+  notfound.append('ike-scan')
+
+class Ike_group:
+  '''Brute-force the VPN group names'''
+
+  usage_hints = [
+    """%prog transform=7/256,2,1,2 -A id=FILE0 0=pentest/vpn/ikeforce/wordlists/groupnames.dic host=xx.xx.xx.xx""",
+    ]
+
+  available_options = (
+    ('host', 'target host'),
+    ('transform', 'transforms to test'),
+    ('id', 'group names to test'),
+    )
+
+  available_actions = ()
+
+  Response = Response_Base
+
+  def __init__(self):
+    uid = multiprocessing.current_process().name[9:]
+    self.sport = '51%s' % uid
+
+  def execute(self, transform, id, host):
+    done=False
+    #while done==False:
+    cmd = ['sudo', 'ike-scan', '--sport', self.sport, '-M', '-A', '--trans',transform,'--id', id, host]
+    with Timing() as timing:
+	      p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	      out, err = p.communicate()
+	      code = p.returncode
+
+    mesg = repr(out.strip())[1:-1]
+    #if "Mode Handshake returned" in mesg:
+    #	done=True
+    if "Dead Peer Detection" in out.strip():
+	    mesg = "Found"
+    else:
+	if "NO-PROPOSAL-CHOSEN" in out.strip():
+	    mesg = "Incorrect Transforms"
+	else:
+	    mesg = "Not Found"
+    trace = '%s\n[out]\n%s\n[err]\n%s' % (cmd, out, err)
+    trace = ""
+    return self.Response(code, mesg, timing, trace)
+
+# }}}
+
+
 # Unzip {{{
 if not which('unzip'):
   notfound.append('unzip')
@@ -4505,6 +4559,7 @@ modules = [
   ('snmp_login', (Controller, SNMP_login)),
   ('ike_enum', (Controller_IKE, IKE_enum)),
 
+  ('ike_group', (Controller, Ike_group)),
   ('unzip_pass', (Controller, Unzip_pass)),
   ('keystore_pass', (Controller, Keystore_pass)),
   ('umbraco_crack', (Controller, Umbraco_crack)),
