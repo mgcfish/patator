@@ -4312,7 +4312,7 @@ class IKE_enum:
 
 # }}}
 
-# Ike_group {{{
+# Unzip {{{
 if not which('ike-scan'):
   notfound.append('ike-scan')
 
@@ -4320,7 +4320,7 @@ class Ike_group:
   '''Brute-force the VPN group names'''
 
   usage_hints = [
-    """%prog transform=7/256,2,1,2 -A id=FILE0 0=pentest/vpn/ikeforce/wordlists/groupnames.dic host=xx.xx.xx.xx""",
+    """%prog transform=7/256,2,1,2 -A id=FILE0 0=pentest/vpn/ikeforce/wordlists/groupnames.dic host=65.199.146.50""",
     ]
 
   available_options = (
@@ -4349,8 +4349,9 @@ class Ike_group:
     mesg = repr(out.strip())[1:-1]
     #if "Mode Handshake returned" in mesg:
     #	done=True
-    if "Dead Peer Detection" in out.strip():
+    if "Aggressive" in out.strip() and "Dead Peer Detection" in out.strip():
 	    mesg = "Found"
+	    print out.strip()
     else:
 	if "NO-PROPOSAL-CHOSEN" in out.strip():
 	    mesg = "Incorrect Transforms"
